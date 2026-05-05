@@ -1,0 +1,22 @@
+openai-agents
+openai-agents
+openai
+fastapi==0.124.4
+uvicorn==0.38.0
+python-dotenv==1.2.1
+redis==7.1.0
+nest-asyncio==1.6.0
+ipykernel==7.1.0
+pymilvus==2.6.5
+langchain-text-splitters==1.1.0
+langchain-milvus== 0.2.2
+langchain-community==0.4.1
+langchain-openai==1.1.6
+pip-system-certs==5.3
+pypdf==6.4.2
+asyncpg==0.31.0
+pymongo==4.15.3
+motor==3.7.1
+python-docx==1.2.0
+pymongo==4.15.3
+motor==3.7.1
