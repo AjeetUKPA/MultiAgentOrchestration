@@ -11,10 +11,9 @@ from langchain_agent.custom_agents.email_agent import email_agent
 
 router = APIRouter(prefix="/langchain_agent", tags=["LangChain Agents"])
 
-
 class ResumeRequest(BaseModel):
     session_id: str = "default"
-    decision: str                       # "y" | "n" | "e"
+    decision: str
     receiver_email: Optional[str] = None
     subject: Optional[str] = None
     body: Optional[str] = None
