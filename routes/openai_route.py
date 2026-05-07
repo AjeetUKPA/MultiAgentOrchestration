@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from schemas.route_schema.main_route import RunRequest, AgentSelector
+from schemas.route_schema.main_route_schema import RunRequest, AgentSelector
 
 from openai_agent import (
     email_agent,
