@@ -1,7 +1,7 @@
 from agents import Agent, Runner
 
-from ..schemas import TranslatorAgentOutput
-from .prompts.translator_agent_prompt import TRANSLATOR_AGENT_DESCRIPTION_AS_TOOL
+from schemas import TranslatorAgentOutput
+from core.prompts.translator_agent_prompt import TRANSLATOR_AGENT_DESCRIPTION_AS_TOOL
 
 
 class TranslatorAgent(Agent):

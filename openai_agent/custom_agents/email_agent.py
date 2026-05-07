@@ -3,9 +3,9 @@ from email.mime.text import MIMEText
 
 from agents import Agent, Runner, function_tool
 
-from ..core.exception import EmailSendException
-from ..schemas import EmailAgentOutput
-from .prompts.email_agent_prompt import EMAIL_AGENT_DESCRIPTION_AS_TOOL
+from core.exception import EmailSendException
+from schemas import EmailAgentOutput
+from core.prompts.email_agent_prompt import EMAIL_AGENT_DESCRIPTION_AS_TOOL
 
 
 class EmailAgent(Agent):

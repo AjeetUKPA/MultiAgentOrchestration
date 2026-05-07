@@ -1,6 +1,6 @@
 from agents import Agent, Runner
 
-from .prompts.orchestrator_agent_prompt import AGENT_ORCHESTRATOR_PROMPT
+from core.prompts.orchestrator_agent_prompt import AGENT_ORCHESTRATOR_PROMPT
 from .tool_factory import handoffs
 
 

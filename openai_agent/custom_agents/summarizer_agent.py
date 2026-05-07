@@ -1,7 +1,7 @@
 from agents import Agent, Runner
 
-from ..schemas import SummarizerAgentOutput
-from .prompts.summarizer_agent_prompt import SUMMARIZER_AGENT_DESCRIPTION_AS_TOOL
+from schemas import SummarizerAgentOutput
+from core.prompts.summarizer_agent_prompt import SUMMARIZER_AGENT_DESCRIPTION_AS_TOOL
 
 
 class SummarizerAgent(Agent):
