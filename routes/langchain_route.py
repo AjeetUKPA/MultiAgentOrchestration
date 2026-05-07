@@ -1,4 +1,7 @@
+from typing import Optional
 from fastapi import APIRouter
+
+from pydantic import BaseModel
 
 from langchain_agent.schemas.route_schema.main_route_schema.main_route_schema import RunRequest, AgentSelector
 from langchain_agent.graph import graph
@@ -9,6 +12,39 @@ from langchain_agent.custom_agents.email_agent import email_agent
 router = APIRouter(prefix="/langchain_agent", tags=["LangChain Agents"])
 
 
+class ResumeRequest(BaseModel):
+    session_id: str = "default"
+    decision: str                       # "y" | "n" | "e"
+    receiver_email: Optional[str] = None
+    subject: Optional[str] = None
+    body: Optional[str] = None
+
+
+def _extract_result(result):
+    """Pull the last message content out of a graph result regardless of v2 wrapping."""
+    try:
+        return result.value["messages"][-1].content
+    except (AttributeError, KeyError, IndexError, TypeError):
+        pass
+    try:
+        return result["messages"][-1].content
+    except (KeyError, IndexError, TypeError):
+        pass
+    return str(result)
+
+
+def _extract_interrupt(result):
+    """Return interrupt objects from a graph result, or an empty list."""
+    try:
+        return result.value.get("interrupts", [])
+    except AttributeError:
+        pass
+    try:
+        return result.get("interrupts", [])
+    except AttributeError:
+        return []
+
+
 @router.post(
     "",
     summary="Run a LangChain agent",
@@ -16,79 +52,93 @@ router = APIRouter(prefix="/langchain_agent", tags=["LangChain Agents"])
         "Submit a natural-language request to one of the LangChain-powered agents.\n\n"
         "- Leave `agent` as `all` to let the **orchestrator** decide which "
         "specialised agent handles the task.\n"
-        "- Set `agent` to a specific value(\n **email_agent** \n , **summarizer_agent**\n  ,**translator_agent** \n) "
-        "to **bypass the orchestrator** and call that agent directly.\n\n"
-        "The response always includes an `agent` key indicating which agent ran "
-        "and a `result` key containing its structured output."
+        "- Set `agent` to a specific value (`email_agent`, `summarizer_agent`, "
+        "`translator_agent`) to **bypass the orchestrator** and call that agent directly.\n\n"
+        "The response includes `interrupt: true` when an email approval is required."
     ),
-    response_description="JSON object with `agent` (which agent ran) and `result` (agent output).",
-    responses={
-        200: {
-            "description": "Successful agent response",
-            "content": {
-                "application/json": {
-                    "examples": {
-                        "orchestrator": {
-                            "summary": "Orchestrator response",
-                            "value": {
-                                "agent": "orchestrator",
-                                "result": "The text has been summarised: AI is reshaping industries.",
-                            },
-                        },
-                        "summarizer_direct": {
-                            "summary": "Direct SummarizerAgent response",
-                            "value": {
-                                "agent": "summarizer_agent",
-                                "result": "AI is reshaping industries. Key points: Automation, Personalisation.",
-                            },
-                        },
-                    }
-                }
-            },
-        }
-    },
 )
 async def run_langchain_agent(request: RunRequest):
     messages = [{"role": "user", "content": request.user_input}]
 
-    if request.agent == AgentSelector.all:
-        result = await graph.run({"messages": messages}, session_id=request.session_id)
-        import json
-        response = result.value["messages"][-1].content
+    # ── Direct agent calls ────────────────────────────────────────────────
+    if request.agent == AgentSelector.summarizer_agent:
+        result = await summarise_agent.ainvoke({"messages": messages})
+        response = result["messages"][-1].content
+        return {"messages": response, "interrupt": False}
 
-        interrupts = result.value.get("interrupts", [])
+    if request.agent == AgentSelector.translator_agent:
+        result = await translate_agent.ainvoke({"messages": messages})
+        response = result["messages"][-1].content
+        return {"messages": response, "interrupt": False}
 
-        description = None
-        receiver_email = None
-        subject = None
-        body = None
-        allowed_decisions = []
-        interrupt = False
+    if request.agent == AgentSelector.email_agent:
+        result = await email_agent.ainvoke({"messages": messages})
+        response = result["messages"][-1].content
+        return {"messages": response, "interrupt": False}
 
-        if interrupts:
-            interrupt = True
+    # ── Orchestrator (agent == "all") ─────────────────────────────────────
+    result = await graph.run({"messages": messages}, session_id=request.session_id)
 
-            first_interrupt = interrupts[0]
+    response   = _extract_result(result)
+    interrupts = _extract_interrupt(result)
 
-            action_request = first_interrupt.value["action_requests"][0]
-            review_config = first_interrupt.value["review_configs"][0]
+    description     = None
+    receiver_email  = None
+    subject         = None
+    body            = None
+    allowed_decisions = []
+    interrupt       = False
 
-            args = action_request["args"]
+    if interrupts:
+        interrupt       = True
+        first_interrupt = interrupts[0]
 
-            receiver_email = args.get("receiver_email")
-            subject = args.get("subject")
-            body = args.get("body")
-
-            description = action_request.get("description")
-
+        try:
+            action_request    = first_interrupt.value["action_requests"][0]
+            review_config     = first_interrupt.value["review_configs"][0]
+            args              = action_request["args"]
+            receiver_email    = args.get("receiver_email")
+            subject           = args.get("subject")
+            body              = args.get("body")
+            description       = action_request.get("description")
             allowed_decisions = review_config.get("allowed_decisions", [])
+        except (AttributeError, KeyError, IndexError, TypeError):
+            # interrupt_before without HumanInTheLoopMiddleware — surface what we have
+            pass
 
-        return {
-            "messages": response,
-            "interrupt": interrupt,
-            "description": description,
-            "allowed_decisions": allowed_decisions,
-            "receiver_email": receiver_email,
-            "subject": subject,
-            "body": body,
-        }
+    return {
+        "messages":          response,
+        "interrupt":         interrupt,
+        "description":       description,
+        "allowed_decisions": allowed_decisions,
+        "receiver_email":    receiver_email,
+        "subject":           subject,
+        "body":              body,
+    }
+
+
+@router.post(
+    "/resume",
+    summary="Resume after an email interrupt",
+    description=(
+        "Resume a session that is paused at the email-approval interrupt.\n\n"
+        "- `decision: 'y'` — approve and send the email as drafted.\n"
+        "- `decision: 'n'` — reject; the email will not be sent.\n"
+        "- `decision: 'e'` — approve with edited fields "
+        "(`receiver_email`, `subject`, `body` are updated before sending)."
+    ),
+)
+async def resume_langchain_agent(request: ResumeRequest):
+    if request.decision == "n":
+        return {"messages": "Email sending was cancelled by the user.", "interrupt": False}
+
+    result = await graph.resume(
+        decision=request.decision,
+        session_id=request.session_id,
+        receiver_email=request.receiver_email,
+        subject=request.subject,
+        body=request.body,
+    )
+
+    response = _extract_result(result)
+    return {"messages": response, "interrupt": False}
