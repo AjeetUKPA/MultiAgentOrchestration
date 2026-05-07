@@ -1,5 +1,6 @@
 openai-agents
-openai-agents
+langchain
+langchain[openai]
 openai
 fastapi==0.124.4
 uvicorn==0.38.0
