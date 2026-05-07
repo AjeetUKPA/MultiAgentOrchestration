@@ -1,6 +1,8 @@
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from routes.langchain_route import router as langchain_router
 from routes.openai_route import router as openai_router
@@ -23,6 +25,14 @@ app = FastAPI(
 
 app.include_router(langchain_router)
 app.include_router(openai_router)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/", include_in_schema=False)
+async def serve_frontend():
+    return FileResponse("static/index.html")
+
 
 if __name__ == "__main__":
     uvicorn.run(
