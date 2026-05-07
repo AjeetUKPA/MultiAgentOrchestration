@@ -1,4 +1,0 @@
-TRANSLATOR_AGENT_DESCRIPTION_AS_TOOL = (
-    "Translates text from any language into a specified target language. "
-    "Provide the source text and the desired target language (e.g. French, Spanish, Hindi)."
-)
