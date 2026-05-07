@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from langchain_agent.schemas.route_schema.main_route import RunRequest, AgentSelector
+from langchain_agent.schemas.route_schema.main_route_schema.main_route_schema import RunRequest, AgentSelector
 from langchain_agent.graph import graph
 from langchain_agent.custom_agents.summarizer_agent import summarise_agent
 from langchain_agent.custom_agents.translator_agent import translate_agent
