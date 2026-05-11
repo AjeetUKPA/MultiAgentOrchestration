@@ -56,6 +56,20 @@ class GraphBuilder:
             return json.loads(content)
         except Exception:
             return result
+    async def resume(self, 
+        decision,
+        session_id,
+        receiver_email,
+        subject,
+        body
+        ):
+        return {
+            "decision":decision,
+            "session_id":session_id,
+            "receiver_email":receiver_email,
+            "subject":subject,
+            "body":body,
+        }
 
     def _build_nodes(self):
         self.builder.add_node("orchestrator_agent", call_orchestrator_agent)

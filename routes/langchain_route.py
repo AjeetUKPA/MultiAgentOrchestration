@@ -29,7 +29,7 @@ def _extract_result(result):
         return result["messages"][-1].content
     except (KeyError, IndexError, TypeError):
         pass
-    return str(result)
+    return result if isinstance(result, str) else result['text']
 
 
 def _extract_interrupt(result):
