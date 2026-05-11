@@ -46,8 +46,13 @@ Important rules:
 
 
 
-async def call_summarise_agent(state: MultiAgentState, config: RunnableConfig):
+async def call_summarise_agent(
+        state: MultiAgentState,
+        config: RunnableConfig,
+        agent_only: bool = False
+        ):
     """Node that calls the summarise_agent."""
     session_id = config["configurable"].get("thread_id")
+    print("Invoking summariser agent")
     response = await summarise_agent.ainvoke(state, config={"configurable": {"thread_id": session_id}})
     return response

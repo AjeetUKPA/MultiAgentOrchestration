@@ -5,9 +5,9 @@ from pydantic import BaseModel
 
 from langchain_agent.schemas.route_schema.main_route_schema.main_route_schema import RunRequest, AgentSelector
 from langchain_agent.graph import graph
-from langchain_agent.custom_agents.summarizer_agent import summarise_agent
-from langchain_agent.custom_agents.translator_agent import translate_agent
-from langchain_agent.custom_agents.email_agent import email_agent
+from langchain_agent.custom_agents.summarizer_agent import call_summarise_agent
+from langchain_agent.custom_agents.translator_agent import call_translate_agent
+from langchain_agent.custom_agents.email_agent import call_email_agent
 
 router = APIRouter(prefix="/langchain_agent", tags=["LangChain Agents"])
 
@@ -58,26 +58,81 @@ def _extract_interrupt(result):
 )
 async def run_langchain_agent(request: RunRequest):
     messages = [{"role": "user", "content": request.user_input}]
-
+    config = {"configurable": {"thread_id": request.session_id}}
+    og_graph = graph.get_graph()
+    state = og_graph.get_state(config)
+    base_state = state.values
     # ── Direct agent calls ────────────────────────────────────────────────
     if request.agent == AgentSelector.summarizer_agent:
-        result = await summarise_agent.ainvoke({"messages": messages})
+        input_state = {
+            **base_state,
+            "messages": messages,
+            "active_agent": "summarizer_agent",
+            "interrupts": (),
+        }
+        result = await call_summarise_agent(
+            input_state,
+            config=config,
+        )
+        updated_state = {
+        **state.values,
+        "messages": result["messages"],
+        "active_agent": "summarizer_agent",
+        "interrupts": (),
+    }
         response = result["messages"][-1].content
+        og_graph.aupdate_state(values=updated_state, config = config)
         return {"messages": response, "interrupt": False}
 
     if request.agent == AgentSelector.translator_agent:
-        result = await translate_agent.ainvoke({"messages": messages})
+        input_state = {
+            **base_state,
+            "messages": messages,
+            "active_agent": "summarizer_agent",
+            "interrupts": (),
+        }
+        result = await call_translate_agent(
+            input_state,
+            config={"configurable": {"thread_id": request.session_id}},
+        )
+        updated_state = {
+        **state.values,
+        "messages": result["messages"],
+        "active_agent": "summarizer_agent",
+        "interrupts": (),
+    }
+
+        og_graph.aupdate_state(values=updated_state, config = config)
         response = result["messages"][-1].content
         return {"messages": response, "interrupt": False}
 
     if request.agent == AgentSelector.email_agent:
-        result = await email_agent.ainvoke({"messages": messages})
+        input_state = {
+            **base_state,
+            "messages": messages,
+            "active_agent": "summarizer_agent",
+            "interrupts": (),
+        }
+        result = await call_email_agent(
+            input_state,
+            config=config,
+        )
+        updated_state = {
+        **state.values,
+        "messages": result["messages"],
+        "active_agent": "summarizer_agent",
+        "interrupts": (),
+    }
+        result = await call_email_agent(
+            input_state,
+            config=config,
+        )
         response = result["messages"][-1].content
+        og_graph.aupdate_state(values = updated_state, config = config)
         return {"messages": response, "interrupt": False}
 
-    # ── Orchestrator (agent == "all") ─────────────────────────────────────
     result = await graph.run({"messages": messages}, session_id=request.session_id)
-
+    print(graph.get_state(request.session_id))
     response   = _extract_result(result)
     interrupts = _extract_interrupt(result)
 

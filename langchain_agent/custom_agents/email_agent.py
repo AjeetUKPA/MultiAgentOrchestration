@@ -46,11 +46,14 @@ async def call_email_agent(state: MultiAgentState , config: RunnableConfig):
     """Node that calls the email agent."""
     session_id = config["configurable"].get("thread_id")
 
+    print("call_email_agent agent")
     response = await email_agent.ainvoke(state, config={"configurable": {"thread_id": session_id}})
     return response
 
 async def call_fallback_agent(state: MultiAgentState, config: RunnableConfig):
     """Node that calls the fallback."""
     session_id = config["configurable"].get("thread_id")
+    print("call_fallback_agent agent")
+
     response = await fallback_agent.ainvoke(state, config={"configurable": {"thread_id": session_id}})
     return response

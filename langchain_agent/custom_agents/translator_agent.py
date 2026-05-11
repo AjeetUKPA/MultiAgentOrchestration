@@ -45,6 +45,6 @@ Important:
 async def call_translate_agent(state: MultiAgentState, config: RunnableConfig):
     """Node that calls the translate_agent."""
     session_id = config["configurable"].get("thread_id")
-
+    print("Translate agent")
     response = await translate_agent.ainvoke(state, config={"configurable": {"thread_id": session_id}})
     return response
