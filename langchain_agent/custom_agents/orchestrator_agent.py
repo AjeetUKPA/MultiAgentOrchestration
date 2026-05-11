@@ -12,8 +12,9 @@ orchestrator_agent = create_agent(
     model="gpt-4o-mini",
     system_prompt="""You are an orchestrator agent. Based on the user input that is provided to you, you have to determine which of the sub-agent to call:
     1. email_agent: An agent that handles all the email related query
-    1. summarise_agent: An agent that handles summairsation related query
-    1. translate_agent: An agent that handles language translation related query.
+    2. summarise_agent: An agent that handles summairsation related query
+    3. translate_agent: An agent that handles language translation related query.
+    4. fallback_agent: An agent that handles query not related to email, summarization or language translation.
     Just give one word answer on the name of the agent to call and nothing else.
     """
 )
