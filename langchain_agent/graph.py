@@ -1,3 +1,4 @@
+import json
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import GraphOutput
@@ -49,10 +50,12 @@ class GraphBuilder:
             config=config,
             )
         print("\n\n\n")
-        states = self.graph.get_state(config)
-        print(states)
-        # result = result.value['interrupts']
-        return result
+        try:
+            last_message = result.value["messages"][-1]
+            content = last_message.content
+            return json.loads(content)
+        except Exception:
+            return result
 
     def _build_nodes(self):
         self.builder.add_node("orchestrator_agent", call_orchestrator_agent)
