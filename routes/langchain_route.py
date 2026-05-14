@@ -81,7 +81,7 @@ async def run_langchain_agent(request: RunRequest):
         "interrupts": (),
     }
         response = result["messages"][-1].content
-        og_graph.aupdate_state(values=updated_state, config = config)
+        await og_graph.aupdate_state(values=updated_state, config = config)
         return {"messages": response, "interrupt": False}
 
     if request.agent == AgentSelector.translator_agent:
@@ -102,7 +102,7 @@ async def run_langchain_agent(request: RunRequest):
         "interrupts": (),
     }
 
-        og_graph.aupdate_state(values=updated_state, config = config)
+        await og_graph.aupdate_state(values=updated_state, config = config)
         response = result["messages"][-1].content
         return {"messages": response, "interrupt": False}
 
@@ -128,7 +128,7 @@ async def run_langchain_agent(request: RunRequest):
             config=config,
         )
         response = result["messages"][-1].content
-        og_graph.aupdate_state(values = updated_state, config = config)
+        await og_graph.aupdate_state(values = updated_state, config = config)
         return {"messages": response, "interrupt": False}
 
     result = await graph.run({"messages": messages}, session_id=request.session_id)
